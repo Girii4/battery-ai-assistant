@@ -3,39 +3,35 @@ import { SYSTEM_INSTRUCTION } from '../constants';
 import { UploadedFile } from '../types';
 
 // The API key is expected to be set in the execution environment.
-// The check for process.env.GEMINI_API_KEY was removed to prevent the app from crashing
-// on load if the variable isn't immediately available, allowing the UI to render.
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-const buildPrompt = (userQuery: string, files: UploadedFile[]): string => {
-  if (files.length === 0) {
-    return userQuery;
-  }
-
-  const fileContext = files.map(file => 
-    `--- START OF DOCUMENT: ${file.name} ---\n${file.content}\n--- END OF DOCUMENT: ${file.name} ---`
-  ).join('\n\n');
-
-  return `Based on the following document(s), please answer the user's query.
-  
-${fileContext}
-
-User Query: "${userQuery}"`;
-};
+// FIX: Use `process.env.API_KEY` to align with the coding guidelines for API key management.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateResponse = async (userQuery: string, files: UploadedFile[]): Promise<string> => {
   try {
-    const prompt = buildPrompt(userQuery, files);
+    const promptParts: { text: string }[] = [];
+
+    // Add context from files if they exist
+    if (files.length > 0) {
+      const fileContext = files.map(file => 
+        `--- START OF DOCUMENT: ${file.name} ---\n${file.content}\n--- END OF DOCUMENT: ${file.name} ---`
+      ).join('\n\n');
+      
+      promptParts.push({ text: `Based on the following document(s), please answer the user's query.\n\n${fileContext}` });
+    }
     
+    // Add the user's query as the final part
+    promptParts.push({ text: userQuery });
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: prompt,
+      contents: { parts: promptParts },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
       },
     });
 
-    return response.text;
+    // Add a fallback to prevent crashes on empty responses
+    return response.text ?? "The AI did not provide a text response. Please try again.";
   } catch (error) {
     console.error("Error generating response from Gemini API:", error);
     if (error instanceof Error) {

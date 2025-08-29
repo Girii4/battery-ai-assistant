@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -30,7 +29,7 @@ export const ChatMessage: React.FC<MessageProps> = ({ message }) => {
       <div className="flex-shrink-0">
         {isUser ? <UserAvatar /> : <AIAvatar />}
       </div>
-      <div className="flex-1 pt-1">
+      <div className="flex-1 pt-1 prose prose-invert max-w-none">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -42,15 +41,29 @@ export const ChatMessage: React.FC<MessageProps> = ({ message }) => {
             ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-4 pl-4" {...props} />,
             li: ({node, ...props}) => <li className="mb-2" {...props} />,
             blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-dark-surface-2 pl-4 italic text-dark-text-secondary my-4" {...props} />,
-            code: ({node, inline, ...props}) => 
-                inline ? <code className="bg-dark-surface-2 text-brand-green px-1 py-0.5 rounded" {...props} /> 
-                       : <pre className="bg-dark-surface-2 p-4 rounded-lg overflow-x-auto my-4"><code {...props} /></pre>,
+            // FIX: Correctly handle the `inline` prop for code elements from react-markdown, which was causing a TypeScript error.
+            // This also resolves a bug where custom styles were not applied to inline code due to prop spreading order.
+            code: ({ node, ...props }) => {
+              const { inline, className, ...rest } = props as any;
+              if (inline) {
+                return (
+                  <code
+                    className="bg-dark-surface-2 text-brand-green px-1 py-0.5 rounded"
+                    {...rest}
+                  />
+                );
+              }
+              return (
+                <pre className="bg-dark-surface-2 p-4 rounded-lg overflow-x-auto my-4">
+                  <code className={className} {...rest} />
+                </pre>
+              );
+            },
             table: ({node, ...props}) => <div className="overflow-x-auto my-4"><table className="w-full text-left border-collapse" {...props} /></div>,
             thead: ({node, ...props}) => <thead className="bg-dark-surface-2" {...props} />,
             th: ({node, ...props}) => <th className="border border-dark-surface-2 px-4 py-2 font-semibold" {...props} />,
             td: ({node, ...props}) => <td className="border border-dark-surface-2 px-4 py-2" {...props} />,
           }}
-          className="prose prose-invert max-w-none"
         >
           {message.text}
         </ReactMarkdown>
