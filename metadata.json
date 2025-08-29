@@ -1,0 +1,5 @@
+{
+  "name": "Battery AI Assistant",
+  "description": "An intelligent AI assistant providing expert knowledge on battery technology, powered by user-provided documents and Gemini.",
+  "requestFramePermissions": []
+}
